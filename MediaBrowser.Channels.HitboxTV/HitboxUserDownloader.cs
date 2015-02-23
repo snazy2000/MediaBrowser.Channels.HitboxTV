@@ -28,9 +28,11 @@ namespace MediaBrowser.Channels.HitboxTV
         {
             RootObject reg;
 
+            string authToken = Plugin.Instance.Configuration.authToken;
+
             _logger.Debug("Getting user data for user with ID: " + query);
 
-            using (var json = await _httpClient.Get(String.Format("http://api.hitbox.tv/media/livestream/{0}.json?offset={1}", query, offset), CancellationToken.None).ConfigureAwait(false))
+            using (var json = await _httpClient.Get(String.Format("http://api.hitbox.tv/media/livestream/{0}.json?offset={1}&authtoken={2}", query, offset, authToken), CancellationToken.None).ConfigureAwait(false))
             {
                 reg = _jsonSerializer.DeserializeFromStream<RootObject>(json);
             }
