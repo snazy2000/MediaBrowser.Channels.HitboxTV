@@ -22,6 +22,9 @@ namespace MediaBrowser.Channels.HitboxTV
         private readonly ILogger _logger;
         private readonly IJsonSerializer _jsonSerializer;
 
+        private string staticURL = "http://edge.sf.hitbox.tv/{0}";
+
+
         public HitboxChannel(IHttpClient httpClient, IJsonSerializer jsonSerializer, ILogManager logManager)
         {
             _httpClient = httpClient;
@@ -31,7 +34,7 @@ namespace MediaBrowser.Channels.HitboxTV
 
         public string DataVersion
         {
-            get { return "1"; }
+            get { return "2"; }
         }
 
         public string Description
@@ -53,8 +56,6 @@ namespace MediaBrowser.Channels.HitboxTV
                     ChannelMediaType.Video
                 },
 
-                // https://github.com/justintv/Twitch-API/blob/master/v3_resources/streams.md
-                
                 MaxPageSize = 100,
 
                 DefaultSortFields = new List<ChannelItemSortField>
@@ -106,17 +107,15 @@ namespace MediaBrowser.Channels.HitboxTV
 
         private async Task<ChannelItemResult> GetChannelsInternal(InternalChannelItemQuery query, CancellationToken cancellationToken)
         {
-            var offset = query.StartIndex.GetValueOrDefault();
+            
             var downloader = new HitboxChannelDownloader(_logger, _jsonSerializer, _httpClient);
-            var channels = await downloader.GetHitboxChannelList(offset, cancellationToken);
-
-            string baseurl = "http://hitbox.tv/{0}";
+            var channels = await downloader.GetHitboxChannelList(query, cancellationToken);
 
             var items = channels.livestream.OrderByDescending(x => x.channel.followers)
                 .Select(i => new ChannelItemInfo
                 {
                     Type = ChannelItemType.Folder,
-                    ImageUrl = String.Format(baseurl, i.media_thumbnail_large),
+                    ImageUrl = String.Format(staticURL, i.media_thumbnail), // I would use the non large image as it will make things faster
                     Name = i.media_name,
                     Id = i.media_id,
                     CommunityRating = Convert.ToSingle(i.channel.followers),
@@ -141,7 +140,7 @@ namespace MediaBrowser.Channels.HitboxTV
             var items = new List<ChannelItemInfo>();
 
             items.Add(new ChannelItemInfo {
-                    ImageUrl = livestream.media_thumbnail_large,
+                    ImageUrl = String.Format(staticURL, livestream.media_thumbnail),
                     IsInfiniteStream = true,
                     MediaType = ChannelMediaType.Video,
                     Name = livestream.media_user_name,

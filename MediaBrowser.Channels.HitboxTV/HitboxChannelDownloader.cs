@@ -1,4 +1,5 @@
 ﻿using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Channels;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using System;
@@ -23,18 +24,22 @@ namespace MediaBrowser.Channels.HitboxTV
 			_httpClient = httpClient;
 		}
 
-        public async Task<RootObject> GetHitboxChannelList(int offset, CancellationToken cancellationToken)
+        public async Task<RootObject> GetHitboxChannelList(InternalChannelItemQuery query, CancellationToken cancellationToken)
         {
-            RootObject reg;
+            int limit = 100;
+            if (query.Limit.HasValue)
+                limit = query.Limit.Value;
+            
+            var offset = query.StartIndex.GetValueOrDefault();
 
             string authtoken = Plugin.Instance.Configuration.authToken;
 
-            using (var json = await _httpClient.Get(String.Format("http://api.hitbox.tv/media.json?offset={0}&limit=100&liveonly=true&authtoken={1}", offset, authtoken), CancellationToken.None).ConfigureAwait(false))
-            {
-                reg = _jsonSerializer.DeserializeFromStream<RootObject>(json);
-            }
+            _logger.Debug("Limit = " + limit);
 
-            return reg;
+            using (var json = await _httpClient.Get(String.Format("http://api.hitbox.tv/media.json?offset={0}&limit={1}&liveonly=true&authtoken={2}", offset, limit, authtoken), CancellationToken.None).ConfigureAwait(false))
+            {
+                return _jsonSerializer.DeserializeFromStream<RootObject>(json);
+            }
         }
     }
 }
